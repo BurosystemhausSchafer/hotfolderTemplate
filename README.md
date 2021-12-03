@@ -1,0 +1,2 @@
+# hotfolderTemplate
+Hotfolder Template
