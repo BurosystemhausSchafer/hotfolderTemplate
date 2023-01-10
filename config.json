@@ -1,3 +1,5 @@
 {
-    "input": "some/folder/name"
+    "config": [{
+        "input": "./testfolder"
+    }]
 }

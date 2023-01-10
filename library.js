@@ -19,55 +19,75 @@ module.exports = {
      * 
      * @param {Object} config Konfigurationsobjekt
      */
-    start(config) {
+    start(config, callback) {
+
+        var me = this;
+
+        // Callback Definieren
+        me.callback = callback || false;
+        config = config || false;
 
         // Log Header
         console.log();
         console.log('😎 \x1b[33mWatch Hotfolder And Copy\x1b[0m');
-        console.log('   ├── Version 1.0');
+        console.log('   ├── Version 1.1');
         console.log('   └── by Tobias Pitzer / Bürosystemhaus Schäfer GmbH & Co. KG');
         console.log();
 
         // Get Config
-        me.getConfig(config);
+        var cfResult = me.getConfig(config);
 
-        // Read Counter
-        var me = this;
+        if (!cfResult) {
+            console.log('🚨 Fehler in der Konfiguration');
+        } else {
 
-        // Überwachung starten
-        me.all(function () {
+            // Überwachung starten
+            me.all(function () {
 
-            // Watch starten
-            me.watch();
-        });
+                // Watch starten
+                me.watch();
+            });
+        }
     },
 
     /**
      * Read Config 
      * 
      */
-    getConfig(config) {
+    getConfig(inputConfig) {
 
-        // Wenn die Config definiert ist
-        if (typeof config != 'undefined') {
+        var me = this;
+        result = false;
 
-            // Wenn die Config bereits ein Objekt ist
-            if (typeof config == 'object') {
+        if (!inputConfig) {
+            return result;
+        }
 
-                // Dannn die Config direkt wieder übernehmen
-                me.config = config;
+        // Wenn die Config bereits ein Objekt ist
+        if (typeof inputConfig == 'object') {
 
-                // Wenn die Config ein String ist
-            } else if (typeof config == 'string') {
+            // Dannn die Config direkt wieder übernehmen
+            me.config = (Array.isArray(inputConfig.config)) ? inputConfig.config : [inputConfig.config];
 
-                // Prüfen ob es ein Config-File ist
-                if(me.isFile(config)) {
+            // Wenn die Config ein String ist
+        } else if (typeof inputConfig == 'string') {
 
-                    // Config File
-                    me.config = JSON.parse(fs.readFileSync(config, 'utf8'));
-                }
+            // Prüfen ob es ein Config-File ist
+            if (me.isFile(inputConfig)) {
+
+                // Config File
+                var fromFileConfig = JSON.parse(fs.readFileSync(inputConfig, 'utf8'));
+
+                // Wenn es ein Array ist
+                me.config = (Array.isArray(fromFileConfig.config)) ? fromFileConfig.config : [fromFileConfig.config];
             }
         }
+
+        if (me.config && Array.isArray(me.config)) {
+            result = true;
+        }
+
+        return result;
     },
 
     /**
@@ -80,15 +100,20 @@ module.exports = {
 
         console.log('> Process all Files');
 
-        me = this;
+        var me = this;
 
         var i = 0;
 
-        // Alle Dateien Scannen
-        fs.readdir(me.path.input, (err, files) => {
+        // Für jede Config durchführen
+        me.config.forEach(function (i, v) {
 
-            // Jede Datei verarbeiten
-            files.forEach(file => {
+            // File Objekt
+            var fileObjs = fs.readdirSync(v.input);
+
+            console.log('> Verarbeitung des Ordners >' + v.input + '<');
+
+            // Schliefe durch alle Files
+            fileObjs.forEach(file => {
 
                 // Verarbeitung starten
                 me.processScan(file);
@@ -103,10 +128,10 @@ module.exports = {
 
             console.log();
 
-            // Callback, dass die Funktion fertig ist
-            cb();
-
         });
+
+        // Callback, dass die Funktion fertig ist
+        cb();
     },
 
     /**
@@ -136,7 +161,7 @@ module.exports = {
                 console.log('   ├── Check if File is ready');
 
                 // Check File is Ready  
-                me.checkFileReady(me.path.input + "/" + file, function (isReady) {
+                me.checkFileReady(me.config.input + "/" + file, function (isReady) {
 
                     // Hier findete dann die eigentliche Magie statt
                     if (isReady) {
@@ -222,8 +247,8 @@ module.exports = {
         console.log('> ⏰ Start Watch');
 
 
-        fs.watch(me.path.input, (eventType, filename) => {
-            if (eventType == 'rename' && me.isFile(me.path.input + "/" + filename)) {
+        fs.watch(me.config.input, (eventType, filename) => {
+            if (eventType == 'rename' && me.isFile(me.config.input + "/" + filename)) {
 
                 console.log();
                 console.log('📂 Input');

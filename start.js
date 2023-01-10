@@ -2,4 +2,4 @@
 const lib = require('./library');
 
 // Alle Dateien verarbeiten
-lib.start();
+lib.start("./config.json");
